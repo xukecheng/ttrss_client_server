@@ -109,7 +109,7 @@ def get_unreads() -> dict:
         article_data = {
             "id": article.id,
             "title": article.title,
-            "time": str(article.updated),
+            "time": article.updated.strftime("%Y-%m-%d %H:%M"),
             "description": article.excerpt,
             "feed_id": article.feed_id,
             "feed_title": article.feed_title,
