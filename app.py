@@ -2,31 +2,27 @@ import flask, json
 from flask import request
 from ttrss.client import TTRClient
 import configparser
+from bs4 import BeautifulSoup
+import re
 
-server = flask.Flask(__name__)
+app = flask.Flask(__name__)
 
-cf = configparser.ConfigParser()
-cf.read('./config.ini', encoding='UTF-8')
-ttrss_url = cf.get('TinyTinyRssServer', 'TinyTinyRssUrl')
-ttrss_account = cf.get('TinyTinyRssServer', 'TinyTinyAccount')
-ttrss_password = cf.get('TinyTinyRssServer', 'TinyTinyPassword')
-client = TTRClient(ttrss_url, ttrss_account, ttrss_password)
 
-@server.route('/get_feed_tree', methods=['get'])
+@app.route('/get_feed_tree', methods=['get'])
 def get_feed_tree() -> dict:
     client.login()
     feeds = client.get_feed_tree()
     del feeds["categories"]['items'][0]
     feed_tree = []
     for items in feeds["categories"]['items']:
-        feed = []
+        feed_list = []
         for item in items["items"]:
             if item["icon"]:
                 feed_data = {
                     "feed_title": item['name'],
                     "feed_icon":
                     "https://rss.xukecheng.tech/%s" % item['icon'],
-                    "feed_id": item['bare_id']
+                    "feed_id": item['bare_id'],
                 }
             else:
                 feed_data = {
@@ -35,17 +31,18 @@ def get_feed_tree() -> dict:
                     "https://picgo-1253786286.cos.ap-guangzhou.myqcloud.com/image/1603502539.png",
                     "feed_id": item['bare_id']
                 }
-            feed.append(feed_data)
+            feed_list.append(feed_data)
         data = {
             "category_id": items['bare_id'],
             "category_name": items['name'],
-            "category_feed": feed,
+            "category_feed": feed_list,
         }
         feed_tree.append(data)
     client.logout()
     return {"code": 200, "data": feed_tree, "message": "success"}
 
-@server.route('/get_feeds', methods=['get'])
+
+@app.route('/get_feeds', methods=['get'])
 def get_feeds() -> dict:
     client.login()
     feeds_list = client.get_feeds(cat_id=-3)
@@ -74,54 +71,50 @@ def get_feeds() -> dict:
     client.logout()
     return {"code": 200, "data": feeds, "message": "success"}
 
-@server.route('/get_unreads', methods=['get'])
+
+@app.route('/get_unreads', methods=['get'])
 def get_unreads() -> dict:
-    # page = request.args.get('page')
-    # limit = request.args.get('limit')
-    # if page:
-    #     page = int(page)
-    # else:
-    #     page = 1
-
-    # if limit:
-    #     pass
-    # else:
-    #     limit = 15
-
+    cf = configparser.ConfigParser()
+    cf.read('./config.ini', encoding='UTF-8')
+    ttrss_url = cf.get('TinyTinyRssServer', 'TinyTinyRssUrl')
+    ttrss_account = cf.get('TinyTinyRssServer', 'TinyTinyAccount')
+    ttrss_password = cf.get('TinyTinyRssServer', 'TinyTinyPassword')
+    client = TTRClient(ttrss_url,
+                       ttrss_account,
+                       ttrss_password,
+                       auto_login=True)
     client.login()
-
-    # unread_count = client.get_unread_count()
-    # max_page = (unread_count//limit)+1
-    # if page == 1:
-    #     skip = 0
-    # elif page :
-    #     skip = (page-1)*limit
-    # else:
-    #     skip = (max_page-1)*limit
-
     unread_articles = client.get_headlines(view_mode="unread",
-                                                show_excerpt=True,
-                                                limit=0,
-                                                skip=0)
-    articles = {}
-    num = 0
+                                           show_excerpt=False,
+                                           limit=0,
+                                           show_content=True,
+                                           skip=0)
+    articles = []
     for article in unread_articles:
+        description = BeautifulSoup(article.content).get_text(strip=True)
+        try:
+            description = description[0:51]
+        except IndexError:
+            pass
+
         article_data = {
             "id": article.id,
+            "feedId": article.feed_id,
             "title": article.title,
-            "time": article.updated.strftime("%Y-%m-%d %H:%M"),
-            "description": article.excerpt,
-            "feed_id": article.feed_id,
-            "feed_title": article.feed_title,
-            "flavor_image": article.flavor_image,
-            "tag": article.tags
+            "isMarked": 1 if article.marked else 0,
+            "isUnread": 1 if article.unread else 0,
+            "description": description,
+            "htmlContent": article.content,
+            "flavorImage": article.flavor_image,
+            "articleOriginLink": article.link,
+            "publishTime": int(article.updated.timestamp()),
         }
-        articles[num] = article_data
-        num += 1
+        articles.append(article_data)
     client.logout()
     return {"code": 200, "data": articles, "message": "success"}
 
-@server.route('/article_detail', methods=['get'])
+
+@app.route('/article_detail', methods=['get'])
 def article_detail() -> dict:
     id = request.args.get('id')
     client.login()
@@ -140,7 +133,8 @@ def article_detail() -> dict:
     client.logout()
     return {"code": 200, "data": data, "message": "success"}
 
-@server.route('/mark_read', methods=['get'])
+
+@app.route('/mark_read', methods=['get'])
 def mark_read():
     id_list = []
     id_list.append(request.args.get('id'))
@@ -148,5 +142,15 @@ def mark_read():
     client.mark_read(id_list)
     return {"code": 200, "message": "success"}
 
+
 if __name__ == '__main__':
-    server.run(debug=True, port=8888, host='0.0.0.0')
+    cf = configparser.ConfigParser()
+    cf.read('./config.ini', encoding='UTF-8')
+    ttrss_url = cf.get('TinyTinyRssServer', 'TinyTinyRssUrl')
+    ttrss_account = cf.get('TinyTinyRssServer', 'TinyTinyAccount')
+    ttrss_password = cf.get('TinyTinyRssServer', 'TinyTinyPassword')
+    client = TTRClient(ttrss_url,
+                       ttrss_account,
+                       ttrss_password,
+                       auto_login=True)
+    app.run(debug=True, port=8888, host='0.0.0.0')
