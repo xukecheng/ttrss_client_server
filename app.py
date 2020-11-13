@@ -47,12 +47,9 @@ def get_feeds() -> dict:
     client.login()
     feeds_list = client.get_feeds(cat_id=-3)
     feed_tree = client.get_feed_tree()
-    feeds = {}
-    for item in feeds_list:
-        feed_title = item.title
-        feed_unread_num = item.unread
-        feed_id = item.id
-
+    feeds = []
+    for feed in feeds_list:
+        feed_id = feed.id
         for items in feed_tree["categories"]['items']:
             for item in items["items"]:
                 if item['bare_id'] == feed_id:
@@ -62,11 +59,12 @@ def get_feeds() -> dict:
                     else:
                         feed_icon = "https://picgo-1253786286.cos.ap-guangzhou.myqcloud.com/image/1603502539.png"
 
-        feeds[feed_id] = {
-            "feed_title": feed_title,
-            "feed_icon": feed_icon,
-            "feed_unread_num": feed_unread_num
-        }
+        feeds.append({
+            "feedId": feed.id,
+            "categoryId": feed.cat_id,
+            "feedTitle": feed.title,
+            "feedIcon": feed_icon,
+        })
 
     client.logout()
     return {"code": 200, "data": feeds, "message": "success"}
@@ -74,15 +72,6 @@ def get_feeds() -> dict:
 
 @app.route('/get_unreads', methods=['get'])
 def get_unreads() -> dict:
-    cf = configparser.ConfigParser()
-    cf.read('./config.ini', encoding='UTF-8')
-    ttrss_url = cf.get('TinyTinyRssServer', 'TinyTinyRssUrl')
-    ttrss_account = cf.get('TinyTinyRssServer', 'TinyTinyAccount')
-    ttrss_password = cf.get('TinyTinyRssServer', 'TinyTinyPassword')
-    client = TTRClient(ttrss_url,
-                       ttrss_account,
-                       ttrss_password,
-                       auto_login=True)
     client.login()
     unread_articles = client.get_headlines(view_mode="unread",
                                            show_excerpt=False,
