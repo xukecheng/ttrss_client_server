@@ -91,7 +91,7 @@ def get_unreads() -> dict:
             "feedId": article.feed_id,
             "title": article.title,
             "isMarked": 1 if article.marked else 0,
-            "isUnread": 1 if article.unread else 0,
+            "isRead": 0 if article.unread else 1,
             "description": description,
             "htmlContent": article.content,
             "flavorImage": article.flavor_image,
