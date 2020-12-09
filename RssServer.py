@@ -60,38 +60,38 @@ class RssServer():
             self.client.mark_read(article_id_list)
             return "已读失败"
 
+    def get_feed_tree(self) -> dict:
+        self.client.login()
+        feeds = self.client.get_feed_tree()
+        del feeds["categories"]['items'][0]
+        feed_tree = []
+        for items in feeds["categories"]['items']:
+            feed_list = []
+            for item in items["items"]:
+                if item["icon"]:
+                    feed_data = {
+                        "feedTitle": item['name'],
+                        "feedIcon":
+                        "https://rss.xukecheng.tech/%s" % item['icon'],
+                        "feedId": item['bare_id'],
+                    }
+                else:
+                    feed_data = {
+                        "feedTitle": item['name'],
+                        "feedIcon":
+                        "https://picgo-1253786286.cos.ap-guangzhou.myqcloud.com/image/1603502539.png",
+                        "feedId": item['bare_id']
+                    }
+                feed_list.append(feed_data)
+            data = {
+                "categoryId": items['bare_id'],
+                "categoryName": items['name'],
+                "categoryFeed": feed_list,
+            }
+            feed_tree.append(data)
+        self.client.logout()
+        return feed_tree
 
-# def get_feed_tree() -> dict:
-#     client.login()
-#     feeds = client.get_feed_tree()
-#     del feeds["categories"]['items'][0]
-#     feed_tree = []
-#     for items in feeds["categories"]['items']:
-#         feed_list = []
-#         for item in items["items"]:
-#             if item["icon"]:
-#                 feed_data = {
-#                     "feed_title": item['name'],
-#                     "feed_icon":
-#                     "https://rss.xukecheng.tech/%s" % item['icon'],
-#                     "feed_id": item['bare_id'],
-#                 }
-#             else:
-#                 feed_data = {
-#                     "feed_title": item['name'],
-#                     "feed_icon":
-#                     "https://picgo-1253786286.cos.ap-guangzhou.myqcloud.com/image/1603502539.png",
-#                     "feed_id": item['bare_id']
-#                 }
-#             feed_list.append(feed_data)
-#         data = {
-#             "category_id": items['bare_id'],
-#             "category_name": items['name'],
-#             "category_feed": feed_list,
-#         }
-#         feed_tree.append(data)
-#     client.logout()
-#     return feed_tree
 
 # def get_feeds() -> dict:
 #     client.login()

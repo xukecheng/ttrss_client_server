@@ -20,7 +20,7 @@ def get_unreads():
             "message": "success"
         }
     except Exception:
-        return {"code": 200, "data": "参数错误", "message": "success"}
+        return {"code": 201, "data": "参数错误", "message": "success"}
 
 
 @app.get("/mark_read")
@@ -33,4 +33,16 @@ def mark_read(article_id_string: str):
             "message": "success"
         }
     except Exception:
-        return {"code": 200, "data": "参数错误", "message": "success"}
+        return {"code": 201, "data": "参数错误", "message": "success"}
+
+
+@app.get("/get_feed_tree")
+def get_feed_tree():
+    try:
+        return {
+            "code": 200,
+            "data": server.get_feed_tree(),
+            "message": "success"
+        }
+    except Exception:
+        return {"code": 201, "data": "参数错误", "message": "success"}
