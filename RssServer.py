@@ -68,20 +68,16 @@ class RssServer():
         for items in feeds["categories"]['items']:
             feed_list = []
             for item in items["items"]:
-                if item["icon"]:
-                    feed_data = {
-                        "feedTitle": item['name'],
-                        "feedIcon":
-                        "https://rss.xukecheng.tech/%s" % item['icon'],
-                        "feedId": item['bare_id'],
-                    }
-                else:
-                    feed_data = {
-                        "feedTitle": item['name'],
-                        "feedIcon":
-                        "https://picgo-1253786286.cos.ap-guangzhou.myqcloud.com/image/1603502539.png",
-                        "feedId": item['bare_id']
-                    }
+                feed_data = {
+                    "feedTitle":
+                    item['name'],
+                    "feedIcon":
+                    "https://rss.xukecheng.tech/%s" %
+                    item['icon'] if item["icon"] else
+                    "https://picgo-1253786286.cos.ap-guangzhou.myqcloud.com/image/1608049658.ico",
+                    "feedId":
+                    item['bare_id'],
+                }
                 feed_list.append(feed_data)
             data = {
                 "categoryId": items['bare_id'],
